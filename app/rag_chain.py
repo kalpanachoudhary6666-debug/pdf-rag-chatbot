@@ -1,13 +1,13 @@
 """
 rag_chain.py
 ------------
-RAG chain using direct Gemini REST API (v1 stable endpoint).
-Bypasses langchain-google-genai to avoid v1beta issues entirely.
+RAG chain using Groq API — free tier, no credit card needed.
+Models: llama-3.3-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768
 Compatible with Python 3.12, 3.13, 3.14.
 """
 
 import os
-import requests
+from groq import Groq
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from typing import Optional, Dict, Any, List
@@ -30,57 +30,29 @@ Question: {question}
 Answer:"""
 
 
-def _call_gemini(api_key: str, prompt: str, model: str = "gemini-2.0-flash-lite") -> str:
-    """
-    Call Gemini using the stable v1 REST API directly.
-    No SDK, no v1beta — guaranteed to work with any valid API key.
-    """
-    url = (
-        f"https://generativelanguage.googleapis.com/v1/models/"
-        f"{model}:generateContent?key={api_key}"
-    )
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.0,
-            "maxOutputTokens": 2048,
-        },
-    }
-    response = requests.post(url, json=payload, timeout=60)
-
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"Gemini API error {response.status_code}: {response.text}"
-        )
-
-    data = response.json()
-    try:
-        return data["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError) as e:
-        raise RuntimeError(f"Unexpected Gemini response format: {data}") from e
-
-
 def build_rag_chain(
     vector_store: FAISS,
-    google_api_key: Optional[str] = None,
-    model_name: str = "gemini-2.0-flash-lite",
+    groq_api_key: Optional[str] = None,
+    model_name: str = "llama-3.3-70b-versatile",
     temperature: float = 0.0,
 ) -> Dict:
     """
-    Build a RAG chain dict using direct Gemini REST API.
+    Build a RAG chain using Groq's free LLM API.
 
     Args:
         vector_store: Populated FAISS vector store.
-        google_api_key: Google API key from aistudio.google.com.
-        model_name: Gemini model name.
-        temperature: Unused (fixed at 0 in REST call for now).
+        groq_api_key: Groq API key from console.groq.com (free).
+        model_name: Groq model to use.
+        temperature: LLM temperature.
 
     Returns:
-        Dict with api_key, model_name, retriever, and chat_history.
+        Dict with client, model_name, retriever, and chat_history.
     """
-    api_key = google_api_key or os.getenv("GOOGLE_API_KEY")
+    api_key = groq_api_key or os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("Google API key not provided.")
+        raise ValueError("Groq API key not provided. Get a free key at https://console.groq.com")
+
+    client = Groq(api_key=api_key)
 
     retriever = vector_store.as_retriever(
         search_type="similarity",
@@ -88,8 +60,9 @@ def build_rag_chain(
     )
 
     return {
-        "api_key": api_key,
+        "client": client,
         "model_name": model_name,
+        "temperature": temperature,
         "retriever": retriever,
         "chat_history": [],
     }
@@ -106,8 +79,9 @@ def ask_question(chain: Dict, question: str) -> Dict[str, Any]:
     Returns:
         Dict with 'answer' and 'source_documents' keys.
     """
-    api_key: str = chain["api_key"]
+    client: Groq = chain["client"]
     model_name: str = chain["model_name"]
+    temperature: float = chain["temperature"]
     retriever = chain["retriever"]
     chat_history: List[Dict] = chain["chat_history"]
 
@@ -128,8 +102,14 @@ def ask_question(chain: Dict, question: str) -> Dict[str, Any]:
         question=question,
     )
 
-    # Call Gemini via stable v1 REST API
-    answer = _call_gemini(api_key, prompt, model=model_name)
+    # Call Groq API
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
+        max_tokens=2048,
+    )
+    answer = response.choices[0].message.content
 
     # Save to memory
     chain["chat_history"].append({"role": "human", "content": question})

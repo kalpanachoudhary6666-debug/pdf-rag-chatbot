@@ -3,8 +3,8 @@ langchain>=0.3.0,<0.4.0
 langchain-community>=0.3.0,<0.4.0
 langchain-text-splitters>=0.3.0,<0.4.0
 
-# Google Gemini — called via REST API directly (avoids v1beta issues)
-requests>=2.31.0
+# Groq LLM — free tier, no credit card needed
+groq>=0.9.0
 
 # Local embeddings — runs on your machine, no API key needed
 sentence-transformers>=3.0.0

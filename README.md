@@ -1,15 +1,15 @@
 # PDF Q&A Chatbot
 
-A chatbot that lets you upload any PDF and ask questions about it in plain English. Built using a RAG (Retrieval-Augmented Generation) pipeline — the app finds the most relevant parts of your document and uses Google Gemini to generate accurate answers grounded in that content.
+A chatbot that lets you upload any PDF and ask questions about it in plain English. Built using a RAG (Retrieval-Augmented Generation) pipeline — the app finds the most relevant parts of your document and uses Llama 3.3 (via Groq) to generate accurate answers grounded in that content.
 
-[![CI](https://github.com/YOUR_USERNAME/pdf-rag-chatbot/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/pdf-rag-chatbot/actions/workflows/ci.yml)
+[![CI](https://github.com/kalpanachoudhary6666-debug/pdf-rag-chatbot/actions/workflows/ci.yml/badge.svg)](https://github.com/kalpanachoudhary6666-debug/pdf-rag-chatbot/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 
 ---
 
 ## What I built and why
 
-I wanted to understand how RAG works in practice — not just theoretically. So I built this end-to-end: the PDF gets split into chunks, each chunk gets converted into a vector embedding (locally, no API needed), and those embeddings are stored in a FAISS index. When you ask a question, the most relevant chunks are retrieved and sent to Gemini along with your question, so the answer is always grounded in the actual document.
+I wanted to understand how RAG works in practice — not just theoretically. So I built this end-to-end: the PDF gets split into chunks, each chunk gets converted into a vector embedding (locally, no API needed), and those embeddings are stored in a FAISS index. When you ask a question, the most relevant chunks are retrieved and sent to Llama 3.3 along with your question, so the answer is always grounded in the actual document.
 
 The hardest part was figuring out the right chunking strategy — too large and the retrieval gets noisy, too small and you lose context. I settled on 1000-character chunks with 200-character overlap which gave the best results across different PDF types.
 
@@ -27,7 +27,7 @@ Streamlit UI (app.py)
 RAG Chain retrieves the top 4 most relevant chunks from FAISS
         │
         ▼
-Chunks + question sent to Google Gemini 2.0 Flash Lite
+Chunks + question sent to Llama 3.3 via Groq API
         │
         ▼
 Answer shown with source chunks so you can verify it
@@ -40,9 +40,9 @@ Embeddings run entirely on your machine using `sentence-transformers/all-MiniLM-
 ## Tech stack
 
 - **LangChain** — document loading, text splitting, FAISS integration
+- **Groq API** — free LLM inference using Llama 3.3 70B
 - **FAISS** — local vector search
 - **sentence-transformers** — local embeddings, no API key needed
-- **Google Gemini 2.0 Flash Lite** — free LLM for generating answers
 - **Streamlit** — the UI
 - **PyPDF** — PDF parsing
 
@@ -51,7 +51,7 @@ Embeddings run entirely on your machine using `sentence-transformers/all-MiniLM-
 ## Running it locally
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/pdf-rag-chatbot.git
+git clone https://github.com/kalpanachoudhary6666-debug/pdf-rag-chatbot.git
 cd pdf-rag-chatbot
 
 python -m venv venv
@@ -61,11 +61,11 @@ source venv/Scripts/activate   # Windows
 pip install -r requirements.txt
 ```
 
-Get a free Gemini API key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and add it:
+Get a free Groq API key from [console.groq.com](https://console.groq.com) — no credit card needed, takes 30 seconds.
 
 ```bash
 cp .env.example .env
-# open .env and set GOOGLE_API_KEY=your-key-here
+# open .env and set GROQ_API_KEY=your-key-here
 ```
 
 ```bash
@@ -81,11 +81,10 @@ pdf-rag-chatbot/
 ├── app/
 │   ├── pdf_processor.py     # loads and chunks the PDF
 │   ├── vector_store.py      # builds and queries the FAISS index
-│   └── rag_chain.py         # calls Gemini with retrieved context
+│   └── rag_chain.py         # calls Llama 3.3 via Groq with retrieved context
 ├── tests/                   # unit tests with mocked API calls
 ├── .github/workflows/       # CI runs tests on every push
 ├── app.py                   # Streamlit UI
-├── check_models.py          # lists Gemini models available for your key
 └── requirements.txt
 ```
 
@@ -109,12 +108,12 @@ Deployed on Streamlit Community Cloud. To deploy your own:
 2. Go to [share.streamlit.io](https://share.streamlit.io) → New app → select this repo → main file: `app.py`
 3. Under Advanced settings → Secrets, add:
    ```toml
-   GOOGLE_API_KEY = "your-key-here"
+   GROQ_API_KEY = "your-key-here"
    ```
 4. Hit Deploy
 
 ---
 
+## Resume bullet
 
-
-> Built a RAG-based PDF Q&A chatbot using LangChain, FAISS, and Google Gemini API; implemented a local embedding pipeline with sentence-transformers and deployed an interactive Streamlit app for real-time document question answering.
+> Built a RAG-based PDF Q&A chatbot using LangChain, FAISS, and Llama 3.3 via Groq API; implemented a local embedding pipeline with sentence-transformers and deployed an interactive Streamlit app for real-time document question answering.

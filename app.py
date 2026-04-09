@@ -31,7 +31,7 @@ st.markdown(
     .stChatMessage { border-radius: 10px; padding: 8px; }
     .source-box {
         background: #f0f2f6;
-        border-left: 3px solid #4285f4;
+        border-left: 3px solid #f55036;
         padding: 8px 12px;
         border-radius: 4px;
         font-size: 0.85rem;
@@ -55,21 +55,19 @@ if "pdf_name" not in st.session_state:
 with st.sidebar:
     st.title("⚙️ Configuration")
 
-    # API key input (falls back to .env)
     api_key_input = st.text_input(
-        "Google Gemini API Key",
+        "Groq API Key",
         type="password",
-        placeholder="AIza... (or set in .env)",
-        help="Free API key from https://aistudio.google.com/apikey — no credit card needed.",
+        placeholder="gsk_... (or set in .env)",
+        help="Free API key from https://console.groq.com — no credit card needed.",
     )
-    google_api_key = api_key_input or os.getenv("GOOGLE_API_KEY", "")
+    groq_api_key = api_key_input or os.getenv("GROQ_API_KEY", "")
 
-    if not google_api_key:
-        st.warning("⚠️ Get a **free** API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)")
+    if not groq_api_key:
+        st.warning("⚠️ Get a **free** API key at [console.groq.com](https://console.groq.com)")
 
     st.divider()
 
-    # PDF upload
     st.subheader("📄 Upload PDF")
     uploaded_file = st.file_uploader(
         "Choose a PDF file",
@@ -77,29 +75,27 @@ with st.sidebar:
         help="Upload any PDF document to chat with it.",
     )
 
-    if uploaded_file and google_api_key:
+    if uploaded_file and groq_api_key:
         if st.button("🚀 Process PDF", use_container_width=True, type="primary"):
             with st.spinner("Processing PDF… this may take a moment."):
                 try:
-                    # Load + chunk
                     pdf_bytes = uploaded_file.read()
                     documents = load_pdf_from_bytes(pdf_bytes, uploaded_file.name)
                     chunks = split_documents(documents)
 
-                    # Build vector store + RAG chain
-                    vector_store = build_vector_store(chunks, google_api_key=google_api_key)
+                    vector_store = build_vector_store(chunks)
                     st.session_state.rag_chain = build_rag_chain(
                         vector_store,
-                        google_api_key=google_api_key,
-                        model_name="gemini-2.0-flash-lite",
+                        groq_api_key=groq_api_key,
+                        model_name="llama-3.3-70b-versatile",
                     )
                     st.session_state.pdf_name = uploaded_file.name
                     st.session_state.chat_history = []
                     st.success(f"✅ Processed **{uploaded_file.name}** ({len(chunks)} chunks)")
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
-    elif uploaded_file and not google_api_key:
-        st.warning("⚠️ Please enter your Gemini API key above.")
+    elif uploaded_file and not groq_api_key:
+        st.warning("⚠️ Please enter your Groq API key above.")
 
     st.divider()
 
@@ -107,9 +103,9 @@ with st.sidebar:
         """
         **How it works:**
         1. Upload any PDF
-        2. PDF is chunked & embedded via Gemini
+        2. PDF is chunked & embedded locally
         3. Embeddings stored in FAISS
-        4. Ask questions — relevant chunks are retrieved and answered by Gemini 1.5 Flash
+        4. Ask questions — relevant chunks retrieved and answered by Llama 3.3
         """
     )
 
@@ -125,7 +121,7 @@ with st.sidebar:
 
 # ── Main chat area ─────────────────────────────────────────────────────────────
 st.title("📄 PDF Q&A Chatbot")
-st.caption("Powered by LangChain · FAISS · Google Gemini 2.0 Flash Lite (Free) · RAG")
+st.caption("Powered by LangChain · FAISS · Llama 3.3 via Groq (Free) · RAG")
 
 if not st.session_state.rag_chain:
     st.info(
