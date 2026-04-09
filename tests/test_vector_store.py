@@ -2,17 +2,15 @@
 test_vector_store.py
 --------------------
 Unit tests for the FAISS vector store module.
-Uses mocking to avoid real OpenAI API calls in CI.
+Uses mocking to avoid loading real sentence-transformers models in CI.
 """
 
 import pytest
 from unittest.mock import patch, MagicMock
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from app.vector_store import build_vector_store, similarity_search
 
-
-# ── Fixtures ───────────────────────────────────────────────────────────────────
 
 @pytest.fixture
 def sample_chunks():
@@ -23,11 +21,9 @@ def sample_chunks():
     ]
 
 
-# ── Tests: build_vector_store ──────────────────────────────────────────────────
-
 class TestBuildVectorStore:
     @patch("app.vector_store.FAISS")
-    @patch("app.vector_store.OpenAIEmbeddings")
+    @patch("app.vector_store.HuggingFaceEmbeddings")
     def test_builds_store_successfully(self, mock_embeddings_class, mock_faiss_class, sample_chunks):
         mock_embeddings = MagicMock()
         mock_embeddings_class.return_value = mock_embeddings
@@ -35,31 +31,21 @@ class TestBuildVectorStore:
         mock_store = MagicMock()
         mock_faiss_class.from_documents.return_value = mock_store
 
-        result = build_vector_store(sample_chunks, openai_api_key="sk-test-key")
+        result = build_vector_store(sample_chunks)
 
-        mock_embeddings_class.assert_called_once_with(openai_api_key="sk-test-key")
+        mock_embeddings_class.assert_called_once()
         mock_faiss_class.from_documents.assert_called_once_with(sample_chunks, mock_embeddings)
         assert result == mock_store
 
-    def test_raises_without_api_key(self, sample_chunks, monkeypatch):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        with pytest.raises(ValueError, match="OpenAI API key not provided"):
-            build_vector_store(sample_chunks, openai_api_key=None)
-
     @patch("app.vector_store.FAISS")
-    @patch("app.vector_store.OpenAIEmbeddings")
-    def test_uses_env_var_when_no_key_passed(
-        self, mock_embeddings_class, mock_faiss_class, sample_chunks, monkeypatch
-    ):
-        monkeypatch.setenv("OPENAI_API_KEY", "sk-env-key")
-        mock_faiss_class.from_documents.return_value = MagicMock()
+    @patch("app.vector_store.HuggingFaceEmbeddings")
+    def test_returns_faiss_store(self, mock_embeddings_class, mock_faiss_class, sample_chunks):
+        mock_store = MagicMock()
+        mock_faiss_class.from_documents.return_value = mock_store
 
-        build_vector_store(sample_chunks)
+        result = build_vector_store(sample_chunks)
+        assert result == mock_store
 
-        mock_embeddings_class.assert_called_once_with(openai_api_key="sk-env-key")
-
-
-# ── Tests: similarity_search ───────────────────────────────────────────────────
 
 class TestSimilaritySearch:
     def test_returns_documents(self, sample_chunks):

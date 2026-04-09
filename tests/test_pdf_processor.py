@@ -6,16 +6,13 @@ Unit tests for the PDF loading and chunking module.
 
 import pytest
 from unittest.mock import patch, MagicMock
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from app.pdf_processor import split_documents, load_pdf_from_bytes
 
 
-# ── Fixtures ───────────────────────────────────────────────────────────────────
-
 @pytest.fixture
 def sample_documents():
-    """Return a list of mock Document objects simulating a loaded PDF."""
     return [
         Document(
             page_content="Artificial intelligence (AI) is intelligence demonstrated by machines. "
@@ -33,8 +30,6 @@ def sample_documents():
     ]
 
 
-# ── Tests: split_documents ─────────────────────────────────────────────────────
-
 class TestSplitDocuments:
     def test_returns_list(self, sample_documents):
         chunks = split_documents(sample_documents)
@@ -46,11 +41,10 @@ class TestSplitDocuments:
             assert isinstance(chunk, Document)
 
     def test_chunk_size_respected(self, sample_documents):
-        """No chunk should exceed the configured chunk_size."""
         chunk_size = 100
         chunks = split_documents(sample_documents, chunk_size=chunk_size, chunk_overlap=0)
         for chunk in chunks:
-            assert len(chunk.page_content) <= chunk_size + 50  # small tolerance for word boundaries
+            assert len(chunk.page_content) <= chunk_size + 50
 
     def test_metadata_preserved(self, sample_documents):
         chunks = split_documents(sample_documents)
@@ -63,18 +57,14 @@ class TestSplitDocuments:
         assert chunks == []
 
     def test_overlap_creates_extra_chunks(self, sample_documents):
-        """High overlap with small chunk_size should produce more chunks."""
         chunks_no_overlap = split_documents(sample_documents, chunk_size=100, chunk_overlap=0)
         chunks_with_overlap = split_documents(sample_documents, chunk_size=100, chunk_overlap=50)
         assert len(chunks_with_overlap) >= len(chunks_no_overlap)
 
 
-# ── Tests: load_pdf_from_bytes ─────────────────────────────────────────────────
-
 class TestLoadPdfFromBytes:
     @patch("app.pdf_processor.PyPDFLoader")
     def test_calls_loader_with_temp_file(self, mock_loader_class):
-        """Should create a temp file and pass its path to PyPDFLoader."""
         mock_loader_instance = MagicMock()
         mock_loader_instance.load.return_value = [
             Document(page_content="Hello world", metadata={"page": 0})
@@ -90,7 +80,6 @@ class TestLoadPdfFromBytes:
 
     @patch("app.pdf_processor.PyPDFLoader")
     def test_temp_file_is_cleaned_up(self, mock_loader_class):
-        """Temp file should be deleted after loading."""
         import os
 
         created_paths = []
@@ -102,7 +91,6 @@ class TestLoadPdfFromBytes:
             return instance
 
         mock_loader_class.side_effect = capture_path
-
         load_pdf_from_bytes(b"%PDF-fake-content")
 
         for path in created_paths:
