@@ -2,7 +2,7 @@
 test_vector_store.py
 --------------------
 Unit tests for the FAISS vector store module.
-Uses mocking to avoid loading real sentence-transformers models in CI.
+Mocks _get_embeddings to avoid loading real sentence-transformers models in CI.
 """
 
 import pytest
@@ -23,28 +23,35 @@ def sample_chunks():
 
 class TestBuildVectorStore:
     @patch("app.vector_store.FAISS")
-    @patch("app.vector_store.HuggingFaceEmbeddings")
-    def test_builds_store_successfully(self, mock_embeddings_class, mock_faiss_class, sample_chunks):
+    @patch("app.vector_store._get_embeddings")
+    def test_builds_store_successfully(self, mock_get_embeddings, mock_faiss_class, sample_chunks):
         mock_embeddings = MagicMock()
-        mock_embeddings_class.return_value = mock_embeddings
+        mock_get_embeddings.return_value = mock_embeddings
 
         mock_store = MagicMock()
         mock_faiss_class.from_documents.return_value = mock_store
 
         result = build_vector_store(sample_chunks)
 
-        mock_embeddings_class.assert_called_once()
+        mock_get_embeddings.assert_called_once()
         mock_faiss_class.from_documents.assert_called_once_with(sample_chunks, mock_embeddings)
         assert result == mock_store
 
     @patch("app.vector_store.FAISS")
-    @patch("app.vector_store.HuggingFaceEmbeddings")
-    def test_returns_faiss_store(self, mock_embeddings_class, mock_faiss_class, sample_chunks):
+    @patch("app.vector_store._get_embeddings")
+    def test_returns_faiss_store(self, mock_get_embeddings, mock_faiss_class, sample_chunks):
         mock_store = MagicMock()
         mock_faiss_class.from_documents.return_value = mock_store
 
         result = build_vector_store(sample_chunks)
         assert result == mock_store
+
+    @patch("app.vector_store.FAISS")
+    @patch("app.vector_store._get_embeddings")
+    def test_accepts_extra_kwargs(self, mock_get_embeddings, mock_faiss_class, sample_chunks):
+        mock_faiss_class.from_documents.return_value = MagicMock()
+        # Should not raise even with extra kwargs
+        build_vector_store(sample_chunks, google_api_key="unused", groq_api_key="unused")
 
 
 class TestSimilaritySearch:
