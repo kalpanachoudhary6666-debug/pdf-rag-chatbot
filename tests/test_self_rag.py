@@ -211,21 +211,31 @@ class TestRunSelfRag:
     def test_grounded_flag_false_when_hallucination(self, mock_retriever, mock_reranker):
         from app.self_rag import build_self_rag_graph, run_self_rag
 
+        # MAX_REWRITES=2, so the graph loops up to 3 times before ending.
+        # Loop 1: grade(×3) + generate + hallucination → rewrite (count=1)
+        # Loop 2: grade(×3) + generate + hallucination → rewrite (count=2)
+        # Loop 3: grade(×3) + generate + hallucination → count=2 >= MAX → END
         client = self._make_groq_sequence(
-            "yes", "yes", "yes",
-            "The revenue was $100 trillion.",
-            "not_grounded",     # hallucination detected
-            # If rewrites_used < MAX_REWRITES it may loop — give rewrite + second attempt
-            "different query",
-            "yes", "yes", "yes",
-            "Answer again.",
-            "not_grounded",
+            # --- loop 1 ---
+            "yes", "yes", "yes",        # grade_documents (3 docs)
+            "Revenue was $100 trillion.", # generate
+            "not_grounded",             # hallucination → rewrite (count=1)
+            "rewritten query 1",        # rewrite_query
+            # --- loop 2 ---
+            "yes", "yes", "yes",        # grade_documents
+            "Revenue was $999 trillion.", # generate
+            "not_grounded",             # hallucination → rewrite (count=2)
+            "rewritten query 2",        # rewrite_query
+            # --- loop 3 ---
+            "yes", "yes", "yes",        # grade_documents
+            "Revenue was $50 trillion.", # generate
+            "not_grounded",             # hallucination → count=2 >= MAX → END
         )
         graph = build_self_rag_graph(mock_retriever, client, "m", 0.0, mock_reranker)
         result = run_self_rag(graph, "Revenue?", [])
 
-        # Graph ends after MAX_REWRITES — grounded may still be False
         assert "grounded" in result
+        assert result["grounded"] is False
 
     def test_rewrites_used_count(self, mock_reranker):
         """rewrite_count should increment each time query is rewritten."""
