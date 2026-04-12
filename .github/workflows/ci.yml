@@ -25,7 +25,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install CPU-only PyTorch (keeps CI fast)
+      - name: Install CPU-only PyTorch (keeps CI fast — avoids 800MB GPU download)
         run: |
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 

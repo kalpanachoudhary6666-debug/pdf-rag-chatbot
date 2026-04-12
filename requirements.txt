@@ -3,10 +3,13 @@ langchain>=0.3.0,<0.4.0
 langchain-community>=0.3.0,<0.4.0
 langchain-text-splitters>=0.3.0,<0.4.0
 
+# Self-RAG agent pipeline
+langgraph>=0.2.0
+
 # Groq LLM — free tier, no credit card needed
 groq>=0.9.0
 
-# Local embeddings — runs on your machine, no API key needed
+# Local embeddings + CrossEncoder re-ranker — runs on your machine, no API key needed
 sentence-transformers>=3.0.0
 
 # PDF processing
@@ -28,3 +31,6 @@ pytest-cov>=5.0.0
 
 # Linting / formatting
 ruff>=0.6.0
+
+# Required by langgraph / langchain internals
+typing-extensions>=4.8.0
