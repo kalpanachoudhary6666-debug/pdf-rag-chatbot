@@ -14,7 +14,7 @@ so the Streamlit UI can show the agent's thinking process live.
 """
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from groq import Groq
 from langchain_core.documents import Document
