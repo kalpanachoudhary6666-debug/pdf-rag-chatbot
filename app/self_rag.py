@@ -174,8 +174,8 @@ def build_self_rag_graph(
         steps = list(state["reasoning_steps"])
 
         prompt = (
-            f"The search query below did not find relevant document chunks.\n"
-            f"Rewrite it using different vocabulary that might match the document better.\n\n"
+            "The search query below did not find relevant document chunks.\n"
+            "Rewrite it using different vocabulary that might match the document better.\n\n"
             f"Original query: {question}\n\n"
             "Rewritten query (reply with ONLY the query, nothing else):"
         )
