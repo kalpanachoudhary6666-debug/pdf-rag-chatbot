@@ -51,7 +51,7 @@ Embeddings run entirely on your machine using `sentence-transformers/all-MiniLM-
 ## Running it locally
 
 ```bash
-git clone  
+git clone https://github.com/kalpanachoudhary6666-debug/pdf-rag-chatbot.git
 cd pdf-rag-chatbot
 
 python -m venv venv
